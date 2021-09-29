@@ -8,11 +8,23 @@ use Livewire\Component;
 class CreatePost extends Component
 {
 
-    public $open = false;
+    public $open = true;
 
     public $title, $content;
 
+    protected $rules = [
+        'title' => 'required',
+        'content' => 'required'
+    ];
+
+    // public function updated($propertyName){
+        // $this->validateOnly($propertyName);
+    // }
+
     public function save(){
+
+        $this->validate();
+
         Post::create([
             'title' => $this->title,
             'content' => $this->content
