@@ -1,5 +1,4 @@
-<div>
-
+<div wire:init="loadPosts">
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             {{ __('Dashboard') }}
@@ -13,12 +12,27 @@
             <x-table>
 
                 <div class="px-6 py-4 flex items-center">
-                    <x-jet-input type="text" wire:model="search" class="flex-1 mr-4" placeholder="Escriba que quiere buscar"/>
+                    <div class="flex items-center">
+                        <span>Mostrar</span>
+
+                        <select class="mx-2 form-control" wire:model="cant">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+
+                        <span>Entradas</span>
+                    </div>
+
+                    <x-jet-input type="text" wire:model="search" class="flex-1 mx-4" placeholder="Escriba que quiere buscar"/>
 
                     @livewire('create-post')
                 </div>
 
-                @if($posts->count())
+                
+
+                @if(count($posts))
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
@@ -78,19 +92,27 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($posts as $post)
+                            @foreach($posts as $item)
                                 <tr>                    
                                     <td class="px-6 py-4 ">
-                                        <div class="text-sm text-gray-900">{{$post->id}}</div>
+                                        <div class="text-sm text-gray-900">{{$item->id}}</div>
                                     </td>
                                     <td class="px-6 py-4 ">
-                                        <div class="text-sm text-gray-900">{{$post->title}}</div>                                    
+                                        <div class="text-sm text-gray-900">{{$item->title}}</div>                                    
                                     </td>
                                     <td class="px-6 py-4  text-sm text-gray-500">
-                                        <div class="text-sm text-gray-900">{{$post->content}}</div>                                    
+                                        <div class="text-sm text-gray-900">{{$item->content}}</div>                                    
                                     </td>
-                                    <td class="px-6 py-4  text-right text-sm font-medium">
-                                        <a href="#" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                    <td class="px-6 py-4  text-sm font-medium flex">
+                                        {{-- @livewire('edit-post', ['post' => $post], key($post->id)) --}}
+                                        <a class="btn btn-green" wire:click="edit({{$item}})">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+
+                                        <a class="btn btn-red ml-2" 
+                                            wire:click="$emit('deletePost', {{ $item->id }})">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
                                     </td>
                                 </tr>
                             @endforeach
@@ -98,6 +120,12 @@
                             <!-- More people... -->
                         </tbody>
                     </table>
+
+                    @if($posts->hasPages())
+                        <div class="px-6 py-3">
+                            {{{$posts->links()}}}
+                        </div>
+                    @endif
                 @else
                     <div class="px-6 py-4">
                         No existe ningun registro coincidente
@@ -109,4 +137,85 @@
 
     </div>
 
+    <x-jet-dialog-modal wire:model="open_edit">
+
+        <x-slot name='title'>
+            Editar el post 
+        </x-slot>
+            
+        <x-slot name='content'>
+
+            <!-- ALERTA -->
+            <div wire:loading wire:target="image" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <strong class="font-bold">Imagen Cargando!</strong>
+                <span class="block sm:inline">Espere un momento hasta que la imagen se haya procesado.</span>
+            </div>
+
+            @if($image)
+                <img class="mb-4" src="{{$image->temporaryUrl()}}" alt="">
+            @else
+                <img src="{{Storage::url($post->image)}}" alt="">
+            @endif
+
+            <div class="mb-4">
+                <x-jet-label value="Titulo del post" />
+                <x-jet-input wire:model="post.title" type="text" class="w-full"/>
+            </div>
+
+            <div>
+                <x-jet-label value="Contenido del post" />
+                <textarea wire:model="post.content" rows="6" class="form-control w-full"></textarea>
+            </div>
+
+            <div>
+                <input type="file" wire:model="image" id="{{$identificador}}">
+                <x-jet-input-error for="image"/>
+            </div>
+        </x-slot>
+            
+        <x-slot name='footer'>
+            <x-jet-secondary-button wire:click="$set('open_edit', false)">
+                Cancelar
+            </x-jet-secondary-button>
+
+            <x-jet-danger-button wire:click="update" wire:loading.attr="disabled" class="disabled:opacity-25">
+                Actualizar
+            </x-jet-danger-button>
+        </x-slot>
+
+    </x-jet-dialog-modal>
+
+    @push('js')
+        <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script>
+            
+            Livewire.on('deletePost', postId => {
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "You won't be able to revert this!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, delete it!'
+                    }).then((result) => {
+                    if (result.isConfirmed) {
+
+                        Livewire.emitTo('show-posts', 'delete', postId);
+
+                        Swal.fire(
+                        'Deleted!',
+                        'Your file has been deleted.',
+                        'success'
+                        )
+                    }
+                    })
+            });
+
+        </script>
+    @endpush
+ 
+
 </div>
+
+
